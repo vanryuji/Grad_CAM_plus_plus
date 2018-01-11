@@ -74,7 +74,7 @@ P.S. Currently our work only supports classification probems with CNN, we plan t
 - tensorflow 1.4
 #### Pre-trained numpy weight(only vgg16/19):
 - https://drive.google.com/drive/folders/0BzS5KZjihEdyUjBHcGFNRnk4bFU?usp=sharing
-- Download npy file and move the file to vgg/weight/
+- Download npy file and move the file to vgg/weight
 #### Pre-trained checkpoint:
 - https://github.com/tensorflow/models/tree/master/research/slim
 - Download ckpt file and move the file to slim/checkpoint
