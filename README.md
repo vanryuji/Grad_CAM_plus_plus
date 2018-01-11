@@ -78,5 +78,5 @@ P.S. Currently our work only supports classification probems with CNN, we plan t
 #### Pre-trained checkpoint:
 - https://github.com/tensorflow/models/tree/master/research/slim
 - Download ckpt file and move the file to slim/checkpoint
-##### Result:
+#### Result:
 ![alt text](images/result1.png)
