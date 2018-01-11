@@ -68,8 +68,10 @@ P.S. Currently our work only supports classification probems with CNN, we plan t
 
 
 
-
 ### UPDATE 2018.01.11:
+#### Environments
+- python 3.5
+- tensorflow 1.4
 #### Pre-trained numpy weight(only vgg16/19)
 - https://drive.google.com/drive/folders/0BzS5KZjihEdyUjBHcGFNRnk4bFU?usp=sharing
 - Download npy file and move the file to vgg/weight/
