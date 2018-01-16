@@ -1,13 +1,11 @@
-import time
 import numpy as np
-import vgg.model.vgg19 as vgg19
 import matplotlib.pyplot as plt
 import os
 import sys
 import math
 import cv2
 import tensorflow as tf
-from slim.model import model_factory
+from model import model_factory
 from grad_cam_plus_plus import GradCamPlusPlus
 
 
@@ -99,67 +97,7 @@ def load_images(filenames, image_size):
 	return np.array(imgs)
 
 
-def do_vgg_19_with_loading_numpy_wieght():
-	image_size = 224
-	filenames = ['catndog4.jpg', 'dog1.jpg', 'cat1.jpg', 'catndog2.jpg']
-	result_imgs = list()
-	result_classes = list()
-	synset = [l.strip() for l in open('vgg/weight/synset.txt').readlines()]
-
-	### Load image
-	imgs = load_images(filenames, image_size)
-
-	### Image normalization
-	imgs = imgs / 255.0
-	assert (0 <= imgs).all() and (imgs <= 1.0).all()
-
-	with tf.Session() as sess:
-		sess.run(tf.global_variables_initializer())
-
-		### Define model & load weight
-		input_images = tf.placeholder("float", [None, image_size, image_size, 3])
-		vgg = vgg19.Vgg19('vgg/weight/vgg19.npy')
-		with tf.name_scope("content_vgg"):
-			vgg.build(input_images)
-
-		### Predict
-		start_time = time.time()
-		print("predict started")
-		probs = sess.run(vgg.prob, feed_dict={input_images: imgs})
-		print(("predict started finished: %ds" % (time.time() - start_time)))
-
-		### Image denormalization
-		imgs = np.uint8(imgs * 255)  # denomalization
-
-		### Create CAM image
-		start_time = time.time()
-		print("create cam image started")
-		grad_cam_plus_plus = GradCamPlusPlus(sess, vgg.fc8, vgg.conv5_4, input_images)
-		cam_imgs, class_indices = grad_cam_plus_plus.create_cam_img(imgs, probs)
-		print(("create cam image finished: %ds" % (time.time() - start_time)))
-
-		for i, filename in enumerate(filenames):
-			box_img = np.copy(imgs[i])
-			for j in range(GradCamPlusPlus.TOP3):
-				### Overlay heatmap
-				heapmap = grad_cam_plus_plus.convert_cam_2_heatmap(cam_imgs[i][j])
-				overlay_img = grad_cam_plus_plus.overlay_heatmap(imgs[i], heapmap)
-				result_imgs.append(overlay_img)
-
-				### Boxing
-				color = [0, 0, 0]
-				color[j] = 255
-				box_img = grad_cam_plus_plus.draw_rectangle(box_img, cam_imgs[i][j], color)
-
-				### Get label
-				result_classes.append(synset[class_indices[i][j]])
-
-			result_imgs.append(box_img)
-
-		show_result(result_imgs, result_classes)
-
-
-def do_slim_model_with_loading_ckpt(model_name, logits_layer_name, last_conv_layer_name, ckpt_file, synset, num_classes, image_size, num_channel, filenames):
+def do_slim_model(model_name, logits_layer_name, last_conv_layer_name, ckpt_file, synset, num_classes, image_size, num_channel, filenames):
 	result_imgs = list()
 	result_classes = list()
 	summary_names = list()
@@ -229,7 +167,7 @@ def do_vgg_19():
 	num_channel = 3
 	filenames = ['kite1.jpg', 'dog1.jpg', 'cat1.jpg', 'airplane1.jpg']
 
-	result_imgs, result_classes = do_slim_model_with_loading_ckpt(model_name, logits_layer_name, last_conv_layer_name, ckpt_file, synset, num_classes, image_size, num_channel, filenames)
+	result_imgs, result_classes = do_slim_model(model_name, logits_layer_name, last_conv_layer_name, ckpt_file, synset, num_classes, image_size, num_channel, filenames)
 	show_result(result_imgs, result_classes)
 
 
@@ -246,12 +184,11 @@ def do_inception_v4():
 	num_channel = 3
 	filenames = ['kite1.jpg', 'dog1.jpg', 'cat1.jpg', 'airplane1.jpg']
 
-	result_imgs, result_classes = do_slim_model_with_loading_ckpt(model_name, logits_layer_name, last_conv_layer_name, ckpt_file, synset, num_classes, image_size, num_channel, filenames)
+	result_imgs, result_classes = do_slim_model(model_name, logits_layer_name, last_conv_layer_name, ckpt_file, synset, num_classes, image_size, num_channel, filenames)
 	show_result(result_imgs, result_classes)
 
 
 if __name__ == '__main__':
-	# do_vgg_19_with_loading_numpy_wieght()
 	do_vgg_19()
 	# do_inception_v4()
 
