@@ -18,19 +18,19 @@ import functools
 
 import tensorflow as tf
 
-from slim.model import alexnet
-from slim.model import cifarnet
-from slim.model import inception
-from slim.model import lenet
-from slim.model import mobilenet_v1
-from slim.model import resnet_v1
-from slim.model import resnet_v2
-from slim.model import vgg
-from slim.model import nasnet
-from slim.model import conv
-from slim.model import deconv
-from slim.model import ed
-from slim.model import deconv_conv
+from model import alexnet
+from model import cifarnet
+from model import inception
+from model import lenet
+from model import mobilenet_v1
+from model import resnet_v1
+from model import resnet_v2
+from model import vgg
+from model import nasnet
+from model import conv
+from model import deconv
+from model import ed
+from model import deconv_conv
 
 slim = tf.contrib.slim
 

@@ -158,9 +158,9 @@ def do_vgg_19():
 	model_name = "vgg_19"
 	logits_layer_name = 'vgg_19/fc8'
 	last_conv_layer_name = 'vgg_19/conv5/conv5_4'
-	ckpt_file = "slim/checkpoint/vgg_19.ckpt"
+	ckpt_file = "checkpoint/vgg_19.ckpt"
 
-	synset = [l.strip() for l in open('slim/checkpoint/synset.txt').readlines()]
+	synset = [l.strip() for l in open('checkpoint/synset.txt').readlines()]
 	num_classes = 1000
 
 	image_size = 224
@@ -175,9 +175,9 @@ def do_inception_v4():
 	model_name = "inception_v4"
 	logits_layer_name = 'Logits'
 	last_conv_layer_name = 'Mixed_7c'
-	ckpt_file = "slim/checkpoint/inception_v4.ckpt"
+	ckpt_file = "checkpoint/inception_v4.ckpt"
 
-	synset = [l.strip() for l in open('slim/checkpoint/synset.txt').readlines()]
+	synset = [l.strip() for l in open('checkpoint/synset.txt').readlines()]
 	num_classes = 1001
 
 	image_size = 299
