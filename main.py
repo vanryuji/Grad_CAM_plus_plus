@@ -1,32 +1,24 @@
-import _tkinter
 import time
-import skimage
-import skimage.io
-import skimage.transform
 import numpy as np
-import tensorflow as tf
 import vgg.model.vgg19 as vgg19
-import vgg.model.vgg_utils as vgg_utils
-from skimage.transform import resize
 import matplotlib.pyplot as plt
 import os
 import sys
 import math
 import cv2
-from scipy.misc import imread, imresize
 import tensorflow as tf
-from tensorflow.python.framework import graph_util
 from slim.model import model_factory
 from grad_cam_plus_plus import GradCamPlusPlus
 
 
 def write_summary(log_dir, names, imgs, sess):
+	image_summaries = list()
 	for i, name in enumerate(names):
 		img_tensor = tf.constant(np.expand_dims(imgs[i][:, :, ::-1], axis=0))
-		tf.summary.image(name, img_tensor, 1)
-	merged_summary = tf.summary.merge_all()
+		image_summaries.append(tf.summary.image(name, img_tensor, 1))
+	merged_image_summary = tf.summary.merge(image_summaries)
 	with tf.summary.FileWriter(log_dir) as summary_writer:
-		summary_writer.add_summary(sess.run(merged_summary))
+		summary_writer.add_summary(sess.run(merged_image_summary))
 
 
 def show_image(img, title='title'):
@@ -216,6 +208,9 @@ def do_slim_model_with_loading_ckpt(model_name, logits_layer_name, last_conv_lay
 			summary_names.append('{}-Boxing'.format(filename))
 
 		### Write summary
+		if os.path.exists('log'):
+			for file in os.listdir('log'):
+				os.remove(os.path.join('log', file))
 		write_summary('log', summary_names, result_imgs, sess)
 
 	return result_imgs, result_classes
@@ -256,8 +251,8 @@ def do_inception_v4():
 
 
 if __name__ == '__main__':
-	do_vgg_19_with_loading_numpy_wieght()
-	# do_vgg_19()
+	# do_vgg_19_with_loading_numpy_wieght()
+	do_vgg_19()
 	# do_inception_v4()
 
 

@@ -1,19 +1,7 @@
-import _tkinter
-import time
-import skimage
-import skimage.io
-import skimage.transform
 import numpy as np
-import tensorflow as tf
-from skimage.transform import resize
-import matplotlib.pyplot as plt
-import os
 import sys
-import math
 import cv2
-from scipy.misc import imread, imresize
 import tensorflow as tf
-from tensorflow.python.framework import graph_util
 
 
 class GradCamPlusPlus(object):
@@ -90,7 +78,7 @@ class GradCamPlusPlus(object):
 				grad_cam_map = np.sum(deep_linearization_weights * conv_output[0], axis=2)
 				cam = np.maximum(grad_cam_map, 0)
 				cam = cam / np.max(cam)  # scale 0 to 1.0
-				cam = resize(cam, (img_height, img_width))
+				cam = cv2.resize(cam, (img_height, img_width))
 
 				### CAM image Denormalization
 				cam = np.uint8(cam * 255)  # denomalization
@@ -105,6 +93,9 @@ class GradCamPlusPlus(object):
 		return cv2.applyColorMap(cam, cv2.COLORMAP_JET)
 
 	def overlay_heatmap(self, img, heatmap):
+		assert len(img.shape) == 3 and img.shape[2] == 3, 'img must be RGB'
+		assert img.shape == heatmap.shape, 'img.shape == heatmap.shape, but img.shape: {} heatmap.shape: {}'.format(img.shape, heatmap.shape)
+
 		return cv2.addWeighted(heatmap, 0.4, img, 0.5, 0)
 
 	def _get_upper_boundary(self, img, height, width):
@@ -121,6 +112,8 @@ class GradCamPlusPlus(object):
 
 	def draw_rectangle(self, img, cam, box_color):
 		# box_color : rgb
+		assert len(img.shape) == 3 and img.shape[2] == 3, 'img must be RGB'
+		assert len(cam.shape) == 2, 'cam must be grayscale'
 
 		### Get height, width
 		height, width = cam.shape
@@ -131,6 +124,9 @@ class GradCamPlusPlus(object):
 		transpose_img = np.transpose(cam)
 		left = self._get_upper_boundary(transpose_img, width, height)
 		right = self._get_lower_boundary(transpose_img, width, height)
+
+		if top is None or bottom is None or left is None or right is None:
+			return img
 
 		return cv2.rectangle(img, (left, top), (right, bottom), tuple(box_color[::-1]), 3)  # color : bgr!!!!
 
