@@ -22,7 +22,7 @@ As described in http://arxiv.org/abs/1602.07261.
 """
 import tensorflow as tf
 
-from slim.model import inception_utils
+from model import inception_utils
 
 slim = tf.contrib.slim
 

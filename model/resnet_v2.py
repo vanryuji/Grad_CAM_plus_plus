@@ -48,7 +48,7 @@ ResNet-101 for semantic segmentation into 21 classes:
 """
 import tensorflow as tf
 
-from slim.model import resnet_utils
+from model import resnet_utils
 
 slim = tf.contrib.slim
 resnet_arg_scope = resnet_utils.resnet_arg_scope

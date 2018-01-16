@@ -18,7 +18,7 @@ Paper: https://arxiv.org/abs/1707.07012
 """
 import tensorflow as tf
 
-from slim.model import nasnet_utils
+from model import nasnet_utils
 
 arg_scope = tf.contrib.framework.arg_scope
 slim = tf.contrib.slim
