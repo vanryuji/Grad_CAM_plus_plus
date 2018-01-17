@@ -10,6 +10,10 @@ from grad_cam_plus_plus import GradCamPlusPlus
 
 
 def write_summary(log_dir, names, imgs, sess):
+	if os.path.exists(log_dir):
+		for file in os.listdir(log_dir):
+			os.remove(os.path.join(log_dir, file))
+
 	image_summaries = list()
 	for i, name in enumerate(names):
 		img_tensor = tf.constant(np.expand_dims(imgs[i][:, :, ::-1], axis=0))
@@ -121,8 +125,8 @@ def do_slim_model(model_name, logits_layer_name, last_conv_layer_name, ckpt_file
 		probs = sess.run(end_points[logits_layer_name], feed_dict={inputs: imgs})
 
 		### Create CAM image
-		grad_cam_plus_plus = GradCamPlusPlus(end_points[logits_layer_name], end_points[last_conv_layer_name])
-		cam_imgs, class_indices = grad_cam_plus_plus.create_cam_img(sess, inputs, imgs, probs)
+		grad_cam_plus_plus = GradCamPlusPlus(end_points[logits_layer_name], end_points[last_conv_layer_name], inputs)
+		cam_imgs, class_indices = grad_cam_plus_plus.create_cam_imgs(sess, imgs, probs)
 
 		for i, filename in enumerate(filenames):
 			box_img = np.copy(imgs[i])
@@ -146,9 +150,6 @@ def do_slim_model(model_name, logits_layer_name, last_conv_layer_name, ckpt_file
 			summary_names.append('{}-Boxing'.format(filename))
 
 		### Write summary
-		if os.path.exists('log'):
-			for file in os.listdir('log'):
-				os.remove(os.path.join('log', file))
 		write_summary('log', summary_names, result_imgs, sess)
 
 	return result_imgs, result_classes
