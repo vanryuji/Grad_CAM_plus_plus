@@ -299,6 +299,8 @@ def vgg_19(inputs,
 
 
 vgg_19.default_image_size = 224
+vgg_19.default_logit_layer_name = 'vgg_19/fc8'
+vgg_19.default_last_conv_layer_name = 'vgg_19/conv5/conv5_4'
 
 # Alias
 vgg_d = vgg_16

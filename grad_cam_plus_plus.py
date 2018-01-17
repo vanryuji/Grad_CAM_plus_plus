@@ -12,7 +12,7 @@ class GradCamPlusPlus(object):
 		self._build_net(logit, last_conv_layer, input_tensor)
 
 	def _build_net(self, logit, last_conv_layer, input_tensor):
-		assert len(logit.shape) == 2, 'len(logit.shape) == 2, but {}'.format(len(logit.shape))
+		assert len(logit.shape) == 2, 'len(logit.shape) == 2, but len(logit.shape): {}'.format(len(logit.shape))
 
 		self.last_conv_layer = last_conv_layer
 		self.input_tensor = input_tensor

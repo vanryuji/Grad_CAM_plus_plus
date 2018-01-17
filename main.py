@@ -101,18 +101,18 @@ def load_images(filenames, image_size):
 	return np.array(imgs)
 
 
-def do_slim_model(model_name, logits_layer_name, last_conv_layer_name, ckpt_file, synset, num_classes, image_size, num_channel, filenames):
+def do_slim_model(model_name, ckpt_file, synset, num_classes, num_channel, filenames):
 	result_imgs = list()
 	result_classes = list()
 	summary_names = list()
 
-	### Load image
-	imgs = load_images(filenames, image_size)
-
 	### Define model
-	inputs = tf.placeholder(tf.float32, shape=[None, image_size, image_size, num_channel], name="inputs")
 	model_f = model_factory.get_network_fn(model_name, num_classes, weight_decay=0.00004, is_training=False)
+	inputs = tf.placeholder(tf.float32, shape=[None, model_f.default_image_size, model_f.default_image_size, num_channel], name="inputs")
 	logits, end_points = model_f(inputs)
+
+	### Load image
+	imgs = load_images(filenames, model_f.default_image_size)
 
 	with tf.Session() as sess:
 		sess.run(tf.global_variables_initializer())
@@ -122,10 +122,10 @@ def do_slim_model(model_name, logits_layer_name, last_conv_layer_name, ckpt_file
 		saver.restore(sess, ckpt_file)
 
 		### Predict
-		probs = sess.run(end_points[logits_layer_name], feed_dict={inputs: imgs})
+		probs = sess.run(end_points[model_f.default_logit_layer_name], feed_dict={inputs: imgs})
 
 		### Create CAM image
-		grad_cam_plus_plus = GradCamPlusPlus(end_points[logits_layer_name], end_points[last_conv_layer_name], inputs)
+		grad_cam_plus_plus = GradCamPlusPlus(end_points[model_f.default_logit_layer_name], end_points[model_f.default_last_conv_layer_name], inputs)
 		cam_imgs, class_indices = grad_cam_plus_plus.create_cam_imgs(sess, imgs, probs)
 
 		for i, filename in enumerate(filenames):
@@ -152,46 +152,40 @@ def do_slim_model(model_name, logits_layer_name, last_conv_layer_name, ckpt_file
 		### Write summary
 		write_summary('log', summary_names, result_imgs, sess)
 
-	return result_imgs, result_classes
+		### Show result
+		show_result(result_imgs, result_classes)
 
 
 def do_vgg_19():
 	model_name = "vgg_19"
-	logits_layer_name = 'vgg_19/fc8'
-	last_conv_layer_name = 'vgg_19/conv5/conv5_4'
 	ckpt_file = "checkpoint/vgg_19.ckpt"
 
 	synset = [l.strip() for l in open('checkpoint/synset.txt').readlines()]
 	num_classes = 1000
 
-	image_size = 224
 	num_channel = 3
 	filenames = ['kite1.jpg', 'dog1.jpg', 'cat1.jpg', 'airplane1.jpg']
 
-	result_imgs, result_classes = do_slim_model(model_name, logits_layer_name, last_conv_layer_name, ckpt_file, synset, num_classes, image_size, num_channel, filenames)
-	show_result(result_imgs, result_classes)
+	do_slim_model(model_name, ckpt_file, synset, num_classes, num_channel, filenames)
+
 
 
 def do_inception_v4():
 	model_name = "inception_v4"
-	logits_layer_name = 'Logits'
-	last_conv_layer_name = 'Mixed_7c'
 	ckpt_file = "checkpoint/inception_v4.ckpt"
 
 	synset = [l.strip() for l in open('checkpoint/synset.txt').readlines()]
 	num_classes = 1001
 
-	image_size = 299
 	num_channel = 3
 	filenames = ['kite1.jpg', 'dog1.jpg', 'cat1.jpg', 'airplane1.jpg']
 
-	result_imgs, result_classes = do_slim_model(model_name, logits_layer_name, last_conv_layer_name, ckpt_file, synset, num_classes, image_size, num_channel, filenames)
-	show_result(result_imgs, result_classes)
+	do_slim_model(model_name, ckpt_file, synset, num_classes, num_channel, filenames)
 
 
 if __name__ == '__main__':
-	do_vgg_19()
-	# do_inception_v4()
+	# do_vgg_19()
+	do_inception_v4()
 
 
 
