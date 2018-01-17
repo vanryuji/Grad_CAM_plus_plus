@@ -8,22 +8,21 @@ class GradCamPlusPlus(object):
 	TOP3 = 3
 	COLOR_THRESHOLD = 200
 
-	def __init__(self, sess, logits, target_conv_layer, input_tensor):
-		assert len(logits.shape) == 2, 'shape of "logits" have to be 2, but {}'.format(len(logits.shape))
+	def __init__(self, logit, last_conv_layer):
+		self._build_net(logit, last_conv_layer)
 
-		self.sess = sess
-		self.target_conv_layer = target_conv_layer
-		self.input_tensor = input_tensor
+	def _build_net(self, logit, last_conv_layer):
+		assert len(logit.shape) == 2, 'len(logit.shape) == 2, but {}'.format(len(logit.shape))
 
-		self.label_vector = tf.placeholder("float", [None, logits.shape[1]])
-		self.label_index = tf.placeholder("int64", ())
+		self.last_conv_layer = last_conv_layer
+		self.label_vector = tf.placeholder("float", [None, logit.shape[1]])
+		self.label_index = tf.placeholder("int64")
 
-		cost = logits * self.label_vector
-		target_conv_layer_grad = tf.gradients(cost, target_conv_layer)[0]
-		self.first_derivative = tf.exp(cost)[0][self.label_index] * target_conv_layer_grad
-		self.second_derivative = tf.exp(cost)[0][self.label_index] * target_conv_layer_grad * target_conv_layer_grad
-		self.triple_derivative = tf.exp(cost)[0][
-									 self.label_index] * target_conv_layer_grad * target_conv_layer_grad * target_conv_layer_grad
+		cost = logit * self.label_vector
+		last_conv_layer_grad = tf.gradients(cost, last_conv_layer)[0]
+		self.first_derivative = tf.exp(cost)[0][self.label_index] * last_conv_layer_grad
+		self.second_derivative = tf.exp(cost)[0][self.label_index] * last_conv_layer_grad * last_conv_layer_grad
+		self.triple_derivative = tf.exp(cost)[0][self.label_index] * last_conv_layer_grad * last_conv_layer_grad * last_conv_layer_grad
 
 	def _create_one_hot_encoding(self, vector_size, class_index):
 		assert vector_size > class_index, '{}(vector_size) is smaller than {}(class_index)'.format(vector_size, class_index)
@@ -33,7 +32,7 @@ class GradCamPlusPlus(object):
 
 		return np.array(output)
 
-	def create_cam_img(self, imgs, probs):
+	def create_cam_img(self, sess, input_tensor, imgs, probs):
 		# imgs(RGB, 0~255)
 		assert len(imgs.shape) == 4, 'shape of "imgs" have to be (batch size, height, width, channel), but {}'.format(imgs.shape)
 		assert len(probs.shape) == 2, 'shape of "probs" have to be (batch size, label vector), but {}'.format(probs.shape)
@@ -60,9 +59,9 @@ class GradCamPlusPlus(object):
 				assert (0 <= img).all() and (img <= 1.0).all()
 
 				### Create CAM image
-				conv_output, conv_first_grad, conv_second_grad, conv_third_grad = self.sess.run(
-					[self.target_conv_layer, self.first_derivative, self.second_derivative, self.triple_derivative],
-					feed_dict={self.input_tensor: [img], self.label_index: class_index,
+				conv_output, conv_first_grad, conv_second_grad, conv_third_grad = sess.run(
+					[self.last_conv_layer, self.first_derivative, self.second_derivative, self.triple_derivative],
+					feed_dict={input_tensor: [img], self.label_index: class_index,
 							   self.label_vector: [one_hot_encoding]})
 				global_sum = np.sum(conv_output[0].reshape((-1, conv_first_grad[0].shape[2])), axis=0)
 				alpha_num = conv_second_grad[0]
@@ -73,8 +72,7 @@ class GradCamPlusPlus(object):
 				weights = np.maximum(conv_first_grad[0], 0.0)
 				alpha_normalization_constant = np.sum(np.sum(alphas, axis=0), axis=0)
 				alphas /= alpha_normalization_constant.reshape((1, 1, conv_first_grad[0].shape[2]))
-				deep_linearization_weights = np.sum((weights * alphas).reshape((-1, conv_first_grad[0].shape[2])),
-													axis=0)
+				deep_linearization_weights = np.sum((weights * alphas).reshape((-1, conv_first_grad[0].shape[2])), axis=0)
 				grad_cam_map = np.sum(deep_linearization_weights * conv_output[0], axis=2)
 				cam = np.maximum(grad_cam_map, 0)
 				cam = cam / np.max(cam)  # scale 0 to 1.0
@@ -90,11 +88,15 @@ class GradCamPlusPlus(object):
 		return cams, class_indices  # cams: (batch size, top 1~3, height, width), class_indices: (batch size, top 1~3)
 
 	def convert_cam_2_heatmap(self, cam):
-		return cv2.applyColorMap(cam, cv2.COLORMAP_JET)
+		assert len(cam.shape) == 2, 'len(cam.shape) == 2, but len(cam.shape): {}'.format(len(cam.shape))
+
+		return cv2.applyColorMap(cam, cv2.COLORMAP_JET)  # rgb
 
 	def overlay_heatmap(self, img, heatmap):
-		assert len(img.shape) == 3 and img.shape[2] == 3, 'img must be RGB'
-		assert img.shape == heatmap.shape, 'img.shape == heatmap.shape, but img.shape: {} heatmap.shape: {}'.format(img.shape, heatmap.shape)
+		assert len(heatmap.shape) == 3 and heatmap.shape[2] == 3, 'heatmap must be RGB'
+
+		if len(img.shape) != 3 or img.shape[2] != 3:
+			img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
 
 		return cv2.addWeighted(heatmap, 0.4, img, 0.5, 0)
 
@@ -104,16 +106,22 @@ class GradCamPlusPlus(object):
 				if int(img[h, w]) > GradCamPlusPlus.COLOR_THRESHOLD:
 					return 0 if h == 0 else h - 1
 
+		return None
+
 	def _get_lower_boundary(self, img, height, width):
 		for h in reversed(range(height)):
 			for w in range(width):
 				if int(img[h, w]) > GradCamPlusPlus.COLOR_THRESHOLD:
 					return height if h == height else h + 1
 
+		return None
+
 	def draw_rectangle(self, img, cam, box_color):
-		# box_color : rgb
-		assert len(img.shape) == 3 and img.shape[2] == 3, 'img must be RGB'
-		assert len(cam.shape) == 2, 'cam must be grayscale'
+		assert len(box_color) == 3  # rgb
+		assert len(cam.shape) == 2, 'len(cam.shape) == 2, but len(cam.shape): {}'.format(len(cam.shape))
+
+		if len(img.shape) != 3 or img.shape[2] != 3:
+			img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
 
 		### Get height, width
 		height, width = cam.shape
@@ -121,9 +129,9 @@ class GradCamPlusPlus(object):
 		### Get top, bottom, left, right
 		top = self._get_upper_boundary(cam, height, width)
 		bottom = self._get_lower_boundary(cam, height, width)
-		transpose_img = np.transpose(cam)
-		left = self._get_upper_boundary(transpose_img, width, height)
-		right = self._get_lower_boundary(transpose_img, width, height)
+		transpose_cam = np.transpose(cam)
+		left = self._get_upper_boundary(transpose_cam, width, height)
+		right = self._get_lower_boundary(transpose_cam, width, height)
 
 		if top is None or bottom is None or left is None or right is None:
 			return img

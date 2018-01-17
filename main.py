@@ -121,8 +121,8 @@ def do_slim_model(model_name, logits_layer_name, last_conv_layer_name, ckpt_file
 		probs = sess.run(end_points[logits_layer_name], feed_dict={inputs: imgs})
 
 		### Create CAM image
-		grad_cam_plus_plus = GradCamPlusPlus(sess, end_points[logits_layer_name], end_points[last_conv_layer_name], inputs)
-		cam_imgs, class_indices = grad_cam_plus_plus.create_cam_img(imgs, probs)
+		grad_cam_plus_plus = GradCamPlusPlus(end_points[logits_layer_name], end_points[last_conv_layer_name])
+		cam_imgs, class_indices = grad_cam_plus_plus.create_cam_img(sess, inputs, imgs, probs)
 
 		for i, filename in enumerate(filenames):
 			box_img = np.copy(imgs[i])
