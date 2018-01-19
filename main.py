@@ -5,7 +5,7 @@ import sys
 import math
 import cv2
 import tensorflow as tf
-from model import model_factory
+from nets import nets_factory
 from grad_cam_plus_plus import GradCamPlusPlus
 
 
@@ -107,7 +107,7 @@ def do_slim_model(model_name, ckpt_file, synset, num_classes, num_channel, filen
 	summary_names = list()
 
 	### Define model
-	model_f = model_factory.get_network_fn(model_name, num_classes, weight_decay=0.00004, is_training=False)
+	model_f = nets_factory.get_network_fn(model_name, num_classes, weight_decay=0.00004, is_training=False)
 	inputs = tf.placeholder(tf.float32, shape=[None, model_f.default_image_size, model_f.default_image_size, num_channel], name="inputs")
 	logits, end_points = model_f(inputs)
 
@@ -184,8 +184,8 @@ def do_inception_v4():
 
 
 if __name__ == '__main__':
-	# do_vgg_19()
-	do_inception_v4()
+	do_vgg_19()
+	# do_inception_v4()
 
 
 
