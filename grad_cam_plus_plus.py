@@ -49,21 +49,17 @@ class GradCamPlusPlus(object):
 		deep_linearization_weights = np.sum((weights * alphas).reshape((-1, conv_first_grad[0].shape[2])), axis=0)
 		grad_cam_map = np.sum(deep_linearization_weights * conv_output[0], axis=2)
 		cam = np.maximum(grad_cam_map, 0)
-		cam = cam / np.max(cam)  # scale 0 to 1.0
+		cam = cam / np.max(cam)
 
 		return cv2.resize(cam, (img.shape[0], img.shape[1]))
 
 	def _normalize_images(self, imgs):
-		imgs = np.maximum(imgs, 0)
-		max = np.max(imgs)
-		if max > 1:
+		if imgs.max() > 1:
 			imgs = imgs / 255.0
-		assert (0 <= imgs).all() and (imgs <= 1.0).all()
 
 		return imgs
 
 	def create_cam_imgs(self, sess, imgs, probs):
-		assert len(imgs.shape) == 4 and imgs.shape[3] == 3, 'len(imgs.shape) == 4(batch size, height, width, channel)  and imgs.shape[3] == 3, but {}'.format(imgs.shape)
 		assert len(probs.shape) == 2, 'len(probs.shape) == 2 (batch size, label vector), but {}'.format(len(probs.shape))
 
 		vector_size = probs.shape[1]
@@ -96,15 +92,21 @@ class GradCamPlusPlus(object):
 		return cams, class_indices  # cams: (batch size, top 1~3, height, width), class_indices: (batch size, top 1~3)
 
 	def convert_cam_2_heatmap(self, cam):
+		# cam color range: 0~255
 		assert len(cam.shape) == 2, 'len(cam.shape) == 2, but len(cam.shape): {}'.format(len(cam.shape))
 
 		return cv2.applyColorMap(cam, cv2.COLORMAP_JET)  # rgb
 
 	def overlay_heatmap(self, img, heatmap):
+		# heatmap color range: 0~255
 		assert len(heatmap.shape) == 3 and heatmap.shape[2] == 3, 'heatmap must be RGB'
 
 		if len(img.shape) != 3 or img.shape[2] != 3:
 			img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+		if img.min() < 0:
+			img = np.maximum(img, 0)
+		if img.max() <= 1:
+			img = np.uint8(img * 255)
 
 		return cv2.addWeighted(heatmap, 0.4, img, 0.5, 0)
 
@@ -129,11 +131,16 @@ class GradCamPlusPlus(object):
 		return None
 
 	def draw_rectangle(self, img, cam, box_color):
+		# cam color range: 0~255
 		assert len(box_color) == 3  # rgb
 		assert len(cam.shape) == 2, 'len(cam.shape) == 2, but len(cam.shape): {}'.format(len(cam.shape))
 
 		if len(img.shape) != 3 or img.shape[2] != 3:
 			img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+		if img.min() < 0:
+			img = np.maximum(img, 0)
+		if img.max() <= 1:
+			img = np.uint8(img * 255)
 
 		### Get height, width
 		height, width = cam.shape
