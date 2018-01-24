@@ -70,6 +70,7 @@ P.S. Currently our work only supports classification probems with CNN, we plan t
 
 ### UPDATE 2018.01.11
 #### Environments:
+- Windows 10
 - python 3.5
 - tensorflow 1.4
 #### Pre-trained checkpoint:
